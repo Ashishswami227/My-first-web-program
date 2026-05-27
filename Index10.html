@@ -1,0 +1,27 @@
+// 1. Create a Post
+app.post('/api/posts', async (req, res) => {
+    const { title, content, author } = req.body;
+    const newPost = new Post({ title, content, author });
+    await newPost.save();
+    res.status(201).json(newPost);
+});
+
+// 2. Read All Posts
+app.get('/api/posts', async (req, res) => {
+    const posts = await Post.find().sort({ createdAt: -1 });
+    res.json(posts);
+});
+
+// 3. Edit/Update a Post
+app.put('/api/posts/:id', async (req, res) => {
+    const { title, content } = req.body;
+    const updatedPost = await Post.findByIdAndUpdate(req.params.id, { title, content }, { new: true });
+    res.json(updatedPost);
+});
+
+// 4. Delete a Post
+app.delete('/api/posts/:id', async (req, res) => {
+    await Post.findByIdAndDelete(req.params.id);
+    res.json({ message: "Post deleted successfully." });
+});
+

@@ -1,0 +1,23 @@
+const express = require('express');
+const mongoose = require('mongoose');
+const cors = require('cors');
+const bcrypt = require('bcryptjs');
+const jwt = require('jsonwebtoken');
+
+const User = require('./models/User');
+const Post = require('./models/Post');
+
+const app = express();
+app.use(express.json());
+app.use(cors());
+
+// Database Connection
+const MONGO_URI = "mongodb://localhost:27017/ThiranexBlogDB";
+mongoose.connect(MONGO_URI)
+    .then(() => console.log("MongoDB connected successfully!"))
+    .catch(err => console.log("Database connection error: ", err));
+
+// [Place all Auth, CRUD, and Comment endpoints here]
+
+app.listen(5000, () => console.log("Server running on port 5000"));
+

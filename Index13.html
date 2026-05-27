@@ -1,0 +1,108 @@
+import React, { useState, useEffect } from 'react';
+import axios from 'axios';
+
+const API = 'http://localhost:5000/api';
+
+function App() {
+    const [posts, setPosts] = useState([]);
+    const [title, setTitle] = useState('');
+    const [content, setContent] = useState('');
+    const [editId, setEditId] = useState(null);
+    const [commentText, setCommentText] = useState({});
+    const [username, setUsername] = useState(localStorage.getItem('user') || '');
+    const [email, setEmail] = useState('');
+    const [password, setPassword] = useState('');
+    const [isLogin, setIsLogin] = useState(true);
+
+    useEffect(() => { fetchPosts(); }, []);
+
+    const fetchPosts = async () => {
+        const res = await axios.get(`${API}/posts`);
+        setPosts(res.data);
+    };
+
+    const handleAuth = async (e) => {
+        e.preventDefault();
+        const route = isLogin ? 'login' : 'register';
+        try {
+            const res = await axios.post(`${API}/${route}`, { username, email, password });
+            if (isLogin) {
+                localStorage.setItem('user', res.data.username);
+                setUsername(res.data.username);
+            } else {
+                alert("Account created! Please Log In.");
+                setIsLogin(true);
+            }
+        } catch (err) { alert("Authentication error."); }
+    };
+
+    const handleSubmitPost = async (e) => {
+        e.preventDefault();
+        if (editId) {
+            await axios.put(`${API}/posts/${editId}`, { title, content });
+            setEditId(null);
+        } else {
+            await axios.post(`${API}/posts`, { title, content, author: username });
+        }
+        setTitle(''); setContent(''); fetchPosts();
+    };
+
+    const handleDelete = async (id) => {
+        await axios.delete(`${API}/posts/${id}`);
+        fetchPosts();
+    };
+
+    const handleComment = async (id) => {
+        await axios.post(`${API}/posts/${id}/comment`, { username, text: commentText[id] });
+        setCommentText({ ...commentText, [id]: '' });
+        fetchPosts();
+    };
+
+    return (
+        <div style={{ padding: '30px', maxWidth: '800px', margin: 'auto', fontFamily: 'sans-serif' }}>
+            <h1>Thiranex Blogging Platform</h1>
+            
+            {!username ? (
+                <form onSubmit={handleAuth}>
+                    <h2>{isLogin ? "Login" : "Register"}</h2>
+                    {!isLogin && <input type="text" placeholder="Username" onChange={e => setUsername(e.target.value)} required />}
+                    <input type="email" placeholder="Email" onChange={e => setEmail(e.target.value)} required />
+                    <input type="password" placeholder="Password" onChange={e => setPassword(e.target.value)} required />
+                    <button type="submit">{isLogin ? "Sign In" : "Sign Up"}</button>
+                    <p style={{cursor:'pointer'}} onClick={() => setIsLogin(!isLogin)}>Toggle Login/Register</p>
+                </form>
+            ) : (
+                <div>
+                    <p>Welcome, <b>{username}</b>! <button onClick={() => { localStorage.clear(); setUsername(''); }}>Logout</button></p>
+                    <form onSubmit={handleSubmitPost}>
+                        <h3>{editId ? "Edit Post" : "Create Post"}</h3>
+                        <input type="text" placeholder="Title" value={title} onChange={e => setTitle(e.target.value)} required /><br/>
+                        <textarea placeholder="Content" value={content} onChange={e => setContent(e.target.value)} required></textarea><br/>
+                        <button type="submit">Publish</button>
+                    </form>
+                </div>
+            )}
+            <hr/>
+            <h2>Global Feed</h2>
+            {posts.map(p => (
+                <div key={p._id} style={{ border: '1px solid #ccc', padding: '15px', margin: '15px 0' }}>
+                    <h3>{p.title}</h3>
+                    <p><small>By: {p.author}</small></p>
+                    <p>{p.content}</p>
+                    {username === p.author && (
+                        <div>
+                            <button onClick={() => { setEditId(p._id); setTitle(p.title); setContent(p.content); }}>Edit</button>
+                            <button onClick={() => handleDelete(p._id)} style={{color:'red'}}>Delete</button>
+                        </div>
+                    )}
+                    <h4>Comments:</h4>
+                    {p.comments.map((c, i) => <p key={i}><b>{c.username}:</b> {c.text}</p>)}
+                    <input type="text" placeholder="Add comment..." value={commentText[p._id] || ''} onChange={e => setCommentText({...commentText, [p._id]: e.target.value})} />
+                    <button onClick={() => handleComment(p._id)}>Comment</button>
+                </div>
+            ))}
+        </div>
+    );
+}
+export default App;
+

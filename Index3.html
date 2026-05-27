@@ -1,0 +1,71 @@
+const express = require('express');
+const mongoose = require('mongoose');
+const path = require('path');
+const app = express();
+
+app.use(express.json());
+app.use(express.static(path.join(__dirname, '.')));
+
+// Database Connectivity Setup
+mongoose.connect('mongodb://127.0.0.1:27017/task_db')
+.then(() => console.log('Connected to MongoDB safely.'))
+.catch(err => console.error('Database connection error:', err));
+
+// Task Model Schema
+const TaskSchema = new mongoose.Schema({
+    title: { type: String, required: true },
+    completed: { type: Boolean, default: false },
+    createdAt: { type: Date, default: Date.now }
+});
+const Task = mongoose.model('Task', TaskSchema);
+
+// --- CRUD REST API ENDPOINTS ---
+
+// 1. CREATE
+app.post('/api/tasks', async (req, res) => {
+    try {
+        const newTask = new Task({ title: req.body.title });
+        await newTask.save();
+        res.status(201).json(newTask);
+    } catch (err) {
+        res.status(400).json({ error: err.message });
+    }
+});
+
+// 2. READ ALL
+app.get('/api/tasks', async (req, res) => {
+    try {
+        const tasks = await Task.find().sort({ createdAt: -1 });
+        res.json(tasks);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// 3. UPDATE (Mark Complete)
+app.put('/api/tasks/:id', async (req, res) => {
+    try {
+        const updatedTask = await Task.findByIdAndUpdate(
+            req.params.id, 
+            { completed: req.body.completed }, 
+            { new: true }
+        );
+        res.json(updatedTask);
+    } catch (err) {
+        res.status(400).json({ error: err.message });
+    }
+});
+
+// 4. DELETE
+app.delete('/api/tasks/:id', async (req, res) => {
+    try {
+        await Task.findByIdAndDelete(req.params.id);
+        res.json({ success: true, message: "Task removed safely." });
+    } catch (err) {
+        res.status(400).json({ error: err.message });
+    }
+});
+
+const PORT = process.env.PORT || 5000;
+app.listen(PORT, () => console.log(`Task Management Server running on port ${PORT}`));
+

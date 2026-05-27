@@ -1,0 +1,39 @@
+const express = require('express');
+const mongoose = require('mongoose');
+const app = express();
+
+app.use(express.json());
+app.use(express.static('.'));
+
+// MongoDB E-Commerce Storage Connection
+mongoose.connect('mongodb://127.0.0.1:27017/ecommerce_db')
+.then(() => console.log('E-Commerce DB Active'))
+.catch(err => console.error(err));
+
+// Order Management Schema
+const OrderSchema = new mongoose.Schema({
+    items: Array,
+    orderDate: { type: Date, default: Date.now }
+});
+const Order = mongoose.model('Order', OrderSchema);
+
+// API Endpoint for User Checkout
+app.post('/api/orders', async (req, res) => {
+    const newOrder = new Order({ items: req.body.items });
+    await newOrder.save();
+    res.json({ success: true, orderId: newOrder._id });
+});
+
+// Role-Based API Endpoint for Admin Dashboard View
+app.get('/api/admin/orders', async (req, res) => {
+    // Role check middleware abstraction
+    const userRole = req.headers['x-user-role']; 
+    if (userRole !== 'Admin') {
+        return res.status(403).json({ message: "Access Denied: Admin privileges required" });
+    }
+    const allOrders = await Order.find();
+    res.json(allOrders);
+});
+
+app.listen(8000, () => console.log('E-Commerce Server running on port 8000'));
+

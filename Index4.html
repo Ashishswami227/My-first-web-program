@@ -1,0 +1,31 @@
+// File Name: auth.js (User Login/Signup Middleware Layer)
+const jwt = require('jsonwebtoken');
+const bcrypt = require('bcryptjs');
+
+// Simulated User Database Array for Mobile Testing
+const users = [];
+
+// Authentication Controller Logic
+async function registerUser(req, res) {
+    try {
+        const hashedPassword = await bcrypt.hash(req.body.password, 10);
+        const newUser = { id: Date.now(), email: req.body.email, password: hashedPassword };
+        users.push(newUser);
+        res.status(201).json({ message: "User Registered Successfully Securely" });
+    } catch (err) {
+        res.status(500).json({ error: "Registration Failed" });
+    }
+}
+
+// Token Verification Route Guard
+function verifyToken(req, res, next) {
+    const bearerHeader = req.headers['authorization'];
+    if (typeof bearerHeader !== 'undefined') {
+        const bearerToken = bearerHeader.split(' ')[1];
+        req.token = bearerToken;
+        next();
+    } else {
+        res.status(403).json({ message: "Access Denied: Protected Task Route" });
+    }
+}
+
